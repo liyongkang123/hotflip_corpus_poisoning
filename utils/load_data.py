@@ -3,7 +3,6 @@ import os
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import faiss
 import torch
 import logging
 import os
@@ -93,8 +92,8 @@ def download_and_unzip(url: str, out_dir: str, chunk_size: int = 1024) -> str:
     return os.path.join(out_dir, dataset.replace(".zip", ""))
 
 
-# def load_data(args, tokenizer, q_model, get_emb): # 仅在 attack 时使用此函数， 这里是原版
-def load_data(args, tokenizer, q_model, get_emb, c_model):  # 加入了 c_model
+def load_data(args, tokenizer, q_model, get_emb): # Here is the original version from Zhong et al.
+# def load_data(args, tokenizer, q_model, get_emb, c_model):  # add c_model for valid_emb_dic
     # Load datasets
     url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(args.attack_dataset)
     out_dir = os.path.join(os.getcwd(), "datasets")
@@ -102,7 +101,6 @@ def load_data(args, tokenizer, q_model, get_emb, c_model):  # 加入了 c_model
     if not os.path.exists(data_path):
         data_path = download_and_unzip(url, out_dir)
     print(data_path)
-
     data = GenericDataLoader(data_path)
     if '-train' in data_path:
         args.split = 'train'
@@ -121,11 +119,10 @@ def load_data(args, tokenizer, q_model, get_emb, c_model):  # 加入了 c_model
             data_dict["sent1"].append(c_ctx)
 
     train_queries =  data_dict["sent0"]
-    set_train_queries = list(set(train_queries)) # 至少在nq 数据集上没用
 
     # do kmeans
     if args.do_kmeans:
-        data_dict = kmeans_split(data_dict, q_model, get_emb, tokenizer, k=args.k, split=args.kmeans_split)   # 默认k=1, 就是相当于只插入一个文档, 那就是平均所有query的文档的embedding , kmeans_split =0
+        data_dict = kmeans_split(data_dict, q_model, get_emb, tokenizer, k=args.k, split=args.kmeans_split)
 
     datasets = {"train": Dataset.from_dict(data_dict)}
 
@@ -134,14 +131,12 @@ def load_data(args, tokenizer, q_model, get_emb, c_model):  # 加入了 c_model
                            padding="max_length" if args.pad_to_max_length else False)
         c_feat = tokenizer(examples["sent1"], max_length=args.max_seq_length, truncation=True,
                            padding="max_length" if args.pad_to_max_length else False)
-
         ret = {}
         for key in q_feat:
             ret[key] = [(q_feat[key][i], c_feat[key][i]) for i in range(len(examples["sent0"]))]
-
         return ret
 
-    # use 30% examples as dev set during training
+    # use 30% examples as dev set during generation
     print('Train data size = %d' % (len(datasets["train"])))
     num_valid = min(1000, int(len(datasets["train"]) * 0.3))
     datasets["subset_valid"] = Dataset.from_dict(datasets["train"][:num_valid])
@@ -155,25 +150,26 @@ def load_data(args, tokenizer, q_model, get_emb, c_model):  # 加入了 c_model
     data_collator = default_data_collator
     dataloader = DataLoader(train_dataset, batch_size=args.per_gpu_eval_batch_size, shuffle=True,
                             collate_fn=lambda x: x)
-    valid_dataloader = DataLoader(dataset, batch_size=128, shuffle=False, collate_fn=lambda x: x) # 更改为16 ->64 ->128  需要40G
+    valid_dataloader = DataLoader(dataset, batch_size=64, shuffle=False, collate_fn=lambda x: x) # Here, change the batch according to the GPU memory you have
 
-    ''' 其中这里的 valid_dataloader 可以直接作为一个embedding存储起来 但这里是优化后的做法'''
-    valid_q_emb = []
-    valid_gold_emb = []
-    for idx, (data) in tqdm(enumerate(valid_dataloader)): # 这里传入的是 valid_dataloader，并且已经经过了 tokenization
-        data = data_collator(data)  # [bsz, 2, max_len] , 2 是 query 和 它的 相关 document
+    '''The valid_dataloader here can be directly stored as an embedding, but here is the optimized approach'''
+    # valid_q_emb = []
+    # valid_gold_emb = []
+    # for idx, (data) in tqdm(enumerate(valid_dataloader)): # The valid_dataloader is passed in here and has been tokenized.
+    #     data = data_collator(data)  # [bsz, 2, max_len] , 2 is the query and its related document
+    #
+    #     # Get query embeddings
+    #     q_sent = {k: data[k][:, 0, :].to('cuda') for k in data.keys()} # Here q_sent is the text of all queries in the validation set
+    #     q_emb = get_emb(q_model, q_sent)  # [b x d]
+    #     valid_q_emb.append(q_emb.detach().cpu().numpy())
+    #
+    #     gold_pass = {k: data[k][:, 1, :].to('cuda') for k in data.keys()} # Here, gold_pass is all the documents in the validation set, and these documents are the relevant text of the query.
+    #     gold_emb = get_emb(c_model, gold_pass)  # [b x d]
+    #     valid_gold_emb.append(gold_emb.detach().cpu().numpy())
+    # valid_emb_dic = {"valid_q_emb":np.concatenate(valid_q_emb, axis=0),"valid_gold_emb":np.concatenate(valid_gold_emb, axis=0)}
 
-        # Get query embeddings
-        q_sent = {k: data[k][:, 0, :].to('cuda') for k in data.keys()} # 这里的q_sent 是 验证集里面所有的 query 的文本
-        q_emb = get_emb(q_model, q_sent)  # [b x d]
-        valid_q_emb.append(q_emb.detach().cpu().numpy())
-
-        gold_pass = {k: data[k][:, 1, :].to('cuda') for k in data.keys()} # 这里的gold_pass 是 验证集里面所有的 document， 然后这些document是query的相关文本
-        gold_emb = get_emb(c_model, gold_pass)  # [b x d]
-        valid_gold_emb.append(gold_emb.detach().cpu().numpy())
-    valid_emb_dic = {"valid_q_emb":np.concatenate(valid_q_emb, axis=0),"valid_gold_emb":np.concatenate(valid_gold_emb, axis=0)}
-
-    return data_collator, dataloader, valid_dataloader,num_valid,valid_emb_dic
+    return data_collator, dataloader, valid_dataloader, num_valid
+    # return data_collator, dataloader, valid_dataloader,num_valid,valid_emb_dic
 
 
 def kmeans_split(data_dict, model, get_emb, tokenizer, k, split):
@@ -213,14 +209,12 @@ def kmeans_split(data_dict, model, get_emb, tokenizer, k, split):
     # Calculate the runtime
     runtime = end_time - start_time
     print('Clustering took: ', runtime, ' seconds')
-
     ret_dict = {"sent0": [], "sent1": []}
     for i in range(len(data_dict["sent0"])):
         if kmeans.labels_[i] == split:
             ret_dict["sent0"].append(data_dict["sent0"][i])
             ret_dict["sent1"].append(data_dict["sent1"][i])
     print("K = %d, split = %d, tot num = %d" % (k, split, len(ret_dict["sent0"])))
-
     return ret_dict
 
 
@@ -259,11 +253,8 @@ def kmeans_split_ours(data_dict, model, get_emb, tokenizer, k, split):
             ret_dict["sent1"].append(data_dict["sent1"][i])
 
     del q_embs,all_query_inputs, data_dict
-
     print("K = %d, split = %d, tot num = %d" % (k, split, len(ret_dict["sent0"])))
     return ret_dict
-
-
 
 def load_data_ours_batch(args, tokenizer, q_model, c_model, get_emb):
     # Load datasets
@@ -299,24 +290,18 @@ def load_data_ours_batch(args, tokenizer, q_model, c_model, get_emb):
         data_dict = kmeans_split_ours(data_dict, q_model, get_emb, tokenizer, k=args.k, split=args.kmeans_split)
 
     gold_passage_init = random.choice(data_dict["sent1"])
-
     if args.attack_query==True:
         batch_size = 64
-        print('开始tokenizing all query')
+        print('start tokenizing all query')
         all_inputs = tokenizer(data_dict["sent0"], padding="max_length", truncation=True, max_length = args.max_query_length,
                                return_tensors="pt")
     else:
         batch_size = 64
-        print('开始tokenizing all documents')
+        print('start tokenizing all documents')
         all_inputs = tokenizer(data_dict["sent1"], padding="max_length", truncation=True, max_length=args.max_seq_length,
                            return_tensors="pt")
-
-
     all_inputs = {key: value.cuda() for key, value in all_inputs.items()}
-
-
     q_embs = []
-
     for i in tqdm(range(0, len(data_dict["sent0"]), batch_size)):
         batch_query_input = {key: value[i:i + batch_size] for key, value in all_inputs.items()}
 
@@ -324,18 +309,13 @@ def load_data_ours_batch(args, tokenizer, q_model, c_model, get_emb):
             batch_query_embs = get_emb(q_model, batch_query_input)
 
         q_embs.append(batch_query_embs.cpu().numpy())
-
     q_embs = np.concatenate(q_embs, axis=0)
-
     # Step 1: Divide the rows into 30% validation set and 70% training set
     num_rows = q_embs.shape[0]
     val_size = min(1000, int(num_rows * 0.3))
     train_size = num_rows - val_size
-
     indices = np.arange(num_rows)
     np.random.shuffle(indices)
-
-
     train_indices = indices[:train_size]
     val_indices = indices[train_size:]
 
@@ -344,11 +324,8 @@ def load_data_ours_batch(args, tokenizer, q_model, c_model, get_emb):
 
     del q_embs, data_dict
 
-
-
     train_batches = create_batches(train_set, batch_size)
     val_batches = create_batches(val_set, batch_size)
-
 
     train_avg_set = batch_average(train_batches)
     val_avg_set = batch_average(val_batches)
@@ -356,18 +333,11 @@ def load_data_ours_batch(args, tokenizer, q_model, c_model, get_emb):
     # Output results
     print("Training set average data set shape:", train_avg_set.shape)
     print("Validation set average data set shape:", val_avg_set.shape)
-
-
     train_dataset = Attack_Batch_Dataset(train_avg_set)
-
-
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-
     valid_dataset = Attack_Batch_Dataset(val_avg_set)
     valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True)
-
     data_collator = default_data_collator
-
     return data_collator, train_loader, valid_loader, val_size ,gold_passage_init
 
 
@@ -397,9 +367,6 @@ def load_data_ours_batch_all(args, tokenizer, q_model, c_model, get_emb):
             data_dict["sent0"].append(q_ctx)
             data_dict["sent1"].append(c_ctx)
 
-
-
-
     # do kmeans
     if args.do_kmeans:
         data_dict_dic = kmeans_split_ours_all(data_dict, q_model, get_emb, tokenizer, k=args.k)
@@ -408,37 +375,24 @@ def load_data_ours_batch_all(args, tokenizer, q_model, c_model, get_emb):
     for k_s in range(args.k):
         data_dict = data_dict_dic[k_s]
         gold_passage_init = random.choice(data_dict["sent1"])
-
         if args.attack_query==True:
-
             batch_size = 64
-
-            print('开始tokenizing all query')
+            print('Start tokenizing all query')
             all_inputs = tokenizer(data_dict["sent0"], padding="max_length", truncation=True, max_length = args.max_query_length,
                                    return_tensors="pt")
         else:
             batch_size = 64
-            print('开始tokenizing all documents')
+            print('Start tokenizing all documents')
             all_inputs = tokenizer(data_dict["sent1"], padding="max_length", truncation=True, max_length=args.max_seq_length,
                                return_tensors="pt")
-
-
-
         all_inputs = {key: value.cuda() for key, value in all_inputs.items()}
-
-
         q_embs = []
-
         for i in tqdm(range(0, len(data_dict["sent0"]), batch_size)):
             batch_query_input = {key: value[i:i + batch_size] for key, value in all_inputs.items()}
-
             with torch.no_grad():
                 batch_query_embs = get_emb(q_model, batch_query_input)
-
             q_embs.append(batch_query_embs.cpu().numpy())
-
         q_embs = np.concatenate(q_embs, axis=0)
-
 
         num_rows = q_embs.shape[0]
         val_size = min(1000, int(num_rows * 0.3))
@@ -456,10 +410,8 @@ def load_data_ours_batch_all(args, tokenizer, q_model, c_model, get_emb):
 
         del q_embs, data_dict
 
-
         train_batches = create_batches(train_set, batch_size)
         val_batches = create_batches(val_set, batch_size)
-
 
         train_avg_set = batch_average(train_batches)
         val_avg_set = batch_average(val_batches)
@@ -468,11 +420,8 @@ def load_data_ours_batch_all(args, tokenizer, q_model, c_model, get_emb):
         print("Training set average data set shape:", train_avg_set.shape)
         print("Validation set average data set shape:", val_avg_set.shape)
 
-
         train_dataset = Attack_Batch_Dataset(train_avg_set)
-
         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-
         valid_dataset = Attack_Batch_Dataset(val_avg_set)
         valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True)
 
@@ -493,21 +442,12 @@ def kmeans_split_ours_all(data_dict, model, get_emb, tokenizer, k):
     # Using batch for calculation will speed up the process from 30 minutes to 3 minutes
     # Assume that batch_size is defined as a suitable value, such as 16
     batch_size = 128
-
-
     all_query_inputs = tokenizer(data_dict["sent0"], padding=True, truncation=True, return_tensors="pt")
-
-
     all_query_inputs = {key: value.cuda() for key, value in all_query_inputs.items()}
 
-
     q_embs = []
-
-
     for i in tqdm(range(0, len(data_dict["sent0"]), batch_size)):
         batch_query_input = {key: value[i:i + batch_size] for key, value in all_query_inputs.items()}
-
-
         with torch.no_grad():
             batch_query_embs = get_emb(model, batch_query_input)
 
@@ -542,4 +482,4 @@ def kmeans_split_ours_all(data_dict, model, get_emb, tokenizer, k):
 
     del q_embs, all_query_inputs, data_dict
     # print("K = %d, split = %d, tot num = %d" % (k, split, len(ret_dict["sent0"])))
-    return return_data_dic
+    return return_data_dic # The output is a dictionary, the key is the cluster, the value is also a dic:  the documents of the cluster

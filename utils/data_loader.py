@@ -79,8 +79,8 @@ class GenericDataLoader: # special for BEAR datasets
             self._load_queries()
 
         if os.path.exists(self.qrels_file):
-            self._load_qrels() # 加载qrels
-            self.queries = {qid: self.queries[qid] for qid in self.qrels} # 只保留qrels中的query
+            self._load_qrels() # load qrels
+            self.queries = {qid: self.queries[qid] for qid in self.qrels} # Only keep the query in qrels
             logger.info("Loaded %d %s Queries.", len(self.queries), split.upper())
             logger.info("Query Example: %s", list(self.queries.values())[0])
 

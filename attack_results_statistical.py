@@ -1,23 +1,8 @@
 '''
 把evaluate_attack 的指标进行计算平均值 ，方差和标准差
 '''
-import os
 import json
-import sys
-import argparse
-import torch
-import copy
-from tqdm import tqdm
 import config
-import wandb
-from utils.load_model import load_models
-from utils.load_data import load_data, load_data_yk, load_data_ours_batch
-from utils.evaluate import evaluate_acc,evaluate_acc_yk ,evaluate_sim_ours
-from utils.data_loader import GenericDataLoader
-from utils.logging import LoggingHandler
-import utils.utils as utils
-from utils.utils import model_code_to_qmodel_name, model_code_to_cmodel_name
-import utils.load_data as ld
 import numpy as np
 
 def main():

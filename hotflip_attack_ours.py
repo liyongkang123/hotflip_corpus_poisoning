@@ -51,7 +51,7 @@ def main():
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
     )
-    set_seed(args.seed) # set seed for reproducibility 我喜欢年份
+    set_seed(args.seed) # set seed for reproducibility
 
     # Load models
     q_model, c_model, tokenizer, get_emb = load_models(args.attack_model_code) # c_model 是ctx model
@@ -73,13 +73,13 @@ def main():
     if args.init_gold is True:
         adv_passage_ids = tokenizer(gold_passage_init)["input_ids"]
         if len(adv_passage_ids) < args.num_adv_passage_tokens:
-            # 使用 0 填充到指定长度
+            # Use mask_token_id to fill to the specified length
             adv_passage_ids += [tokenizer.mask_token_id] * (args.num_adv_passage_tokens - len(adv_passage_ids))
         else:
-            # 如果足够长，则直接切片
+            # If it is long enough, cut it directly
             adv_passage_ids = adv_passage_ids[:args.num_adv_passage_tokens]
     else:
-        adv_passage_ids = [tokenizer.mask_token_id] * args.num_adv_passage_tokens # 这里设置要生成 50 个 token, 即 50 个 mask token
+        adv_passage_ids = [tokenizer.mask_token_id] * args.num_adv_passage_tokens # Here we set to generate 50 tokens, i.e. 50 mask tokens
 
     print('Init adv_passage', tokenizer.convert_ids_to_tokens(adv_passage_ids))
     adv_passage_ids = torch.tensor(adv_passage_ids, device=device).unsqueeze(0)
@@ -87,7 +87,7 @@ def main():
     adv_passage_attention = torch.ones_like(adv_passage_ids, device=device)
     adv_passage_token_type = torch.zeros_like(adv_passage_ids, device=device)
 
-    best_adv_passage_ids = adv_passage_ids.clone() #  深拷贝（deep copy）操作， 两个张量相互独立
+    best_adv_passage_ids = adv_passage_ids.clone()
 
     best_sim = evaluate_sim_ours(q_model, c_model, get_emb, valid_loader, best_adv_passage_ids, adv_passage_attention,
                                  adv_passage_token_type, data_collator)
@@ -97,7 +97,7 @@ def main():
     prep_end_time = time.time()
     search_start_time = time.time()
 
-    for it_ in range(args.num_iter):  #这个代码是对单个聚类簇进行攻击，所以直接设置迭代次数 num_iter 5000
+    for it_ in range(args.num_iter):  #This code attacks a single cluster, so directly set the number of iterations num_iter 5000
         print(f"Iteration: {it_}")
 
         # print(f'Accumulating Gradient {args.num_grad_iter}')
@@ -107,7 +107,7 @@ def main():
         train_iter_centrid_embedding = iter(train_loader)
         grad = None
 
-        for _ in pbar: #这里的_ 是占位符，表示不需要使用这个变量，所以不需要赋值 ，实际上只会运行一次这里的for循环
+        for _ in pbar: #Here _ is a placeholder, indicating that this variable is not needed, so no value is assigned. In fact, the for loop here will only be run once
             try:
                 it_centrid_embedding = next(train_iter_centrid_embedding)
 
@@ -124,7 +124,6 @@ def main():
             # print('loss', loss.cpu().item())
             loss.backward()
 
-            # train_q_centrid_em 的模长仅有0.538， 而 p_emb 的模长是 4.7
             temp_grad = embedding_gradient.get()
             if grad is None:
                 grad = temp_grad.sum(dim=0) / args.num_grad_iter
@@ -137,8 +136,6 @@ def main():
         current_score, candidate_scores = hotflip_candidate_score(args, it_,
                     candidates, pbar, train_iter_centrid_embedding, data_collator, get_emb, q_model, c_model,
                     adv_passage_ids, adv_passage_attention, adv_passage_token_type,token_to_flip, device=device)
-
-
 
         # if find a better one, update
         if (candidate_scores > current_score).any() :
@@ -154,9 +151,9 @@ def main():
         cur_sim = evaluate_sim_ours(q_model, c_model, get_emb, valid_loader, adv_passage_ids, adv_passage_attention,
                                     adv_passage_token_type, data_collator)
         end_time = time.time()
-        # print(end_time - start_time,'seconds evaluate_acc 一次所需的时间')
 
-        if cur_sim > best_sim: #  cur_acc 越小越好
+
+        if cur_sim > best_sim: # The larger the cur_sim, the better
             best_sim = cur_sim
             best_adv_passage_ids = adv_passage_ids.clone()
             logger.info('!!! Updated best adv_passage')

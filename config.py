@@ -1,8 +1,8 @@
 import argparse
 
 def parse():
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--method', type=str, default="hotflip", help='hotflip  hotflip_raw or aggd')
+    parser = argparse.ArgumentParser(description='Reproducing HotFlip for Corpus Poisoning Attacks in Dense Retrieval')
+    parser.add_argument('--method', type=str, default="hotflip", help='hotflip or  hotflip_raw ')
     parser.add_argument('--attack_dataset', type=str, default="arguana", help='BEIR dataset to evaluate,  nq, nq-train, msmarco  arguana fiqa')
     parser.add_argument('--split', type=str, default='train',help='train, test') # Use the query of the training set to generate clusters, and then use the generated documents to attack
     parser.add_argument('--attack_model_code', type=str, default='contriever',help='contriever, contriever-msmarco, dpr-single, dpr-multi,ance')
@@ -26,7 +26,7 @@ def parse():
     parser.add_argument("--init_gold", dest='init_gold', action='store_true', help="If specified, init with gold passages") #Dual switch setting
     parser.add_argument("--no_init_gold", dest='init_gold', action='store_false', help="If specified, do not init with gold passages")
     
-    parser.add_argument("--dont_init_gold", action="store_true", help="if ture, do not init with gold passages") # 默认值是 False
+    parser.add_argument("--dont_init_gold", action="store_true", help="if ture, do not init with gold passages") # The default value is False
 
     # embedding_index
     parser.add_argument('--result_output', default="results/beir_result", type=str)
@@ -42,5 +42,4 @@ def parse():
     parser.add_argument("--attack_rate",type=float,default=0.0001, help="the rate to attack the corpus")
 
     args = parser.parse_args()
-
     return args

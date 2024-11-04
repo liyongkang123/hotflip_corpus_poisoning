@@ -62,7 +62,8 @@ def main():
     c_model.to(device)
 
     # Load datasets
-    data_collator, dataloader, valid_dataloader, num_valid,valid_emb_dic = load_data(args, tokenizer, q_model, get_emb, c_model) # c_model embdding gold_passage
+    # data_collator, dataloader, valid_dataloader, num_valid,valid_emb_dic = load_data(args, tokenizer, q_model, get_emb, c_model) # c_model embdding gold_passage
+    data_collator, dataloader, valid_dataloader, num_valid = load_data(args, tokenizer, q_model, get_emb )  # c_model embdding gold_passage
 
 
     # Set up variables for embedding gradients
@@ -80,7 +81,7 @@ def main():
 
     best_adv_passage_ids = adv_passage_ids.clone()
     best_acc = evaluate_acc(q_model, c_model, get_emb, valid_dataloader, best_adv_passage_ids, adv_passage_attention,
-                            adv_passage_token_type, data_collator,valid_emb_dic) # add valid_emb_dic
+                            adv_passage_token_type, data_collator,valid_emb_dic=None) # add valid_emb_dic
     # The acc here is the accuracy rate of the relevant document being greater than the adversarial document, so if you want the attack to be effective, the lowest best_acc should be used.
 
     print(best_acc)
@@ -127,7 +128,7 @@ def main():
 
                 best_adv_passage_ids = adv_passage_ids.clone()
                 best_acc = evaluate_acc(q_model, c_model, get_emb, valid_dataloader, best_adv_passage_ids,
-                                        adv_passage_attention, adv_passage_token_type, data_collator,valid_emb_dic)
+                                        adv_passage_attention, adv_passage_token_type, data_collator,valid_emb_dic=None)
                 print(best_acc)
 
             p_sent = {'input_ids': adv_passage_ids,
@@ -237,7 +238,7 @@ def main():
 
         start_time =time.time()
         cur_acc = evaluate_acc(q_model, c_model, get_emb, valid_dataloader, adv_passage_ids, adv_passage_attention,
-                               adv_passage_token_type, data_collator,valid_emb_dic)
+                               adv_passage_token_type, data_collator,valid_emb_dic=None)
         end_time = time.time()
         print(end_time - start_time,'seconds evaluate_acc Time required for one time')
         #

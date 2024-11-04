@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from transformers import AutoTokenizer,AutoModel , BertTokenizerFast
+from transformers import AutoTokenizer
 from transformers import DPRContextEncoder, DPRContextEncoderTokenizerFast
 from transformers import DPRQuestionEncoder
 from transformers import BertModel

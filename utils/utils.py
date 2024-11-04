@@ -37,7 +37,7 @@ def get_embeddings(model):
         embeddings = model[0].auto_model.embeddings.word_embeddings
     else:
         embeddings = model.embeddings.word_embeddings
-    return embeddings # size 是 (30522,768)
+    return embeddings # size is (30522,768)
 
 
 def hotflip_attack(averaged_grad,
@@ -61,7 +61,7 @@ def hotflip_attack(averaged_grad,
 
     # f(a) --> f(b)  =  f'(a) * (b - a) = f'(a) * b
 
-model_code_to_qmodel_name = {  # 这是query 的encoder
+model_code_to_qmodel_name = {  # query encoder
     "contriever": "facebook/contriever",
     "contriever-msmarco": "facebook/contriever-msmarco",
     "dpr-single": "facebook/dpr-question_encoder-single-nq-base",
@@ -72,7 +72,7 @@ model_code_to_qmodel_name = {  # 这是query 的encoder
     "condenser":"hlyu/co-condenser-marco-retriever_141011_cls",
 }
 
-model_code_to_cmodel_name = {  # 这是ctx  的encoder
+model_code_to_cmodel_name = {  # ctx  encoder
     "contriever": "facebook/contriever",
     "contriever-msmarco": "facebook/contriever-msmarco",
     "dpr-single": "facebook/dpr-ctx_encoder-single-nq-base",

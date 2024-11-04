@@ -4,17 +4,12 @@ We first perform the original retrieval evaluation on BEIR and save the retrieva
 '''
 
 import logging
-import time
-import torch
-import json
-import random
 from transformers import (
     set_seed,
 default_data_collator,
 )
 import wandb
 logger = logging.getLogger(__name__)
-
 
 from utils.data_loader import GenericDataLoader
 from utils.logging import LoggingHandler
