@@ -3,11 +3,13 @@ This is the code repository for our ECIR reproducibility paper submission.
 
 
 ## Files structure
-- `data/` contains the data files used in the experiments.
+- `datasets/` contains the datasets files used in the experiments.
 - `results/` contains the results of the experiments.
 - `scripts/` contains the scripts to run the experiments.
 - `utils/` contains the utility functions used in the experiments.
 
+## Datasets
+The datasets used in the experiments are from the BEIR library. The datasets are stored in the `datasets/` folder. These datasets will download automatically when you run the code.
 
 ## Requirements
 - Python ,PyTorch , numpy, pandas, beir,transformers, sentence_transformers, sklearn, wandb
@@ -50,7 +52,9 @@ Things need for the experiments in RQ3:
 # Hyperparameter Study of $I_{max}$
 
 The maximum number of iterations $I_{max}$ is an important hyper-parameter affecting the attack result. Zhong et al.(2023)  use $I_{max}=5000$  as the default setting, while Su et al.(2024) use $I_{max}=3000$ as the default setting. However, the impact of $I_{max}$ on experimental results, aside from their effect on runtime, remains unclear. To better show the differences, we select **Contriever-ms** as the retriever, and attack the **NQ** dataset using its training queries. And we generate $|\mathcal{A}| \in \{1, 10, 50\}$ adversarial passages with different number of iterations $I_{max}$. We use five different random seeds and record the experimental results every 1000 iterations, from 1000 to a maximum of 20000. We report the mean attack success rate under different random seeds in the following Figure.
+
 ![Image](results/hyper_parameter_Imax.png)
+
 In this Figure , we can observe that a larger $I_{max}$ generally leads to better attack performance. Moreover, increasing $I_{max}$ leads to a much greater performance improvement when $|\mathcal{A}|=1$ compared to $|\mathcal{A}|=50$. 
 However, increasing $I_{max}$ also leads to more time costs, even with our optimized code, each iteration still takes approximately 0.06 seconds.
  Therefore, the specific choice of $I_{max}$ depends on a trade-off between efficiency and performance.
