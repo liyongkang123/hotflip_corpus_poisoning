@@ -14,7 +14,7 @@ This is the code repository for our ECIR reproducibility paper submission.
 - If you do not want to use wandb, you can comment out all code with *wandb* in the code.
 - You need to install the *beir* library(https://github.com/beir-cellar/beir)
 
-## Details
+## Introduction of the code
 Things need for the experiments in RQ1:
 - 1, `embedding_index.py` is used to index the embeddings of the corpus, and save the retrieval results by BEIR.
 - 2.1, `hotflip_raw.py` is used to generate the adversarial examples by hotflip (Zhong et al., 2023).
@@ -32,3 +32,25 @@ Things need for the experiments in RQ3:
 
 # Steps to reproduce the results
 ## RQ1
+- 1, Run `sbatch scripts/embedding_index.sh` to get the retrieval results of the all datsaets with all retrievers. The retrieval results are saved in `results/beir_result`.
+- 2, Run `sbatch scripts/generate_hotflip_multi_raw.sh` to generate the adversarial examples by hotflip (Zhong et al., 2023). The adversarial examples are saved in `results/hotflip_raw-generate`.
+- 3, Run `sbatch scripts/generate_hotflip_multi.sh` to generate the adversarial examples by hotflip (Zhong et al., 2023) with our pipeline optimizing strategy (Mean embedding). The adversarial examples are saved in `results/hotflip-generate`.
+- 4, Run `sbatch scripts/evaluate_attack.sh` to evaluate the attack performance of the adversarial examples. The  results are saved in `results/attack_results`.
+- 5, Run `python attack_results_statistics.py` to calculate the statistics of the attack results.
+
+## RQ2
+- 1, Since we have already generated the adversarial examples in RQ1, we do not need to repeat the steps in RQ1.
+- 2, Run `sbatch scripts/transfer_attack.sh`. The retrieval results are saved in `results/attack_results/hotflip` and `results/attack_results/hotflip_raw`.
+- 3, Run `python transfer_attack_statical.py --method hotflip_raw ` and `python transfer_attack_statical.py --method hotflip` to calculate the statistics of the attack results of black-box attacks. Remember to change the method to `hotflip_raw` and `hotflip` respectively. And change `seed_list = [1999]` only for `k_list=[10]` in the evaluation `hotflip_raw` method.
+
+## RQ3
+- 1, Run `sbatch scripts/attack_corpus_ous.sh` to generate the adversarial passages for the corpus poisoning attack. The results are saved in `results_corpus_attack/hotflip-generate`.
+- 2, When you finish the code, they will output the evaluation results directly. Just record the results.
+
+# Hyperparameter Study of $I_{max}$
+
+The maximum number of iterations $I_{max}$ is an important hyper-parameter affecting the attack result. Zhong et al.(2023)  use $I_{max}=5000$  as the default setting, while Su et al.(2024) use $I_{max}=3000$ as the default setting. However, the impact of $I_{max}$ on experimental results, aside from their effect on runtime, remains unclear. To better show the differences, we select **Contriever-ms** as the retriever, and attack the **NQ** dataset using its training queries. And we generate $|\mathcal{A}| \in \{1, 10, 50\}$ adversarial passages with different number of iterations $I_{max}$. We use five different random seeds and record the experimental results every 1000 iterations, from 1000 to a maximum of 20000. We report the mean attack success rate under different random seeds in the following Figure.
+![Image](results/hyper_parameter_Imax.png)
+In this Figure , we can observe that a larger $I_{max}$ generally leads to better attack performance. Moreover, increasing $I_{max}$ leads to a much greater performance improvement when $|\mathcal{A}|=1$ compared to $|\mathcal{A}|=50$. 
+However, increasing $I_{max}$ also leads to more time costs, even with our optimized code, each iteration still takes approximately 0.06 seconds.
+ Therefore, the specific choice of $I_{max}$ depends on a trade-off between efficiency and performance.

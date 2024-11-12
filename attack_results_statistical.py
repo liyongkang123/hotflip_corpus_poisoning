@@ -8,7 +8,7 @@ def main():
 
     # datasets_list =['nq','msmarco']
     datasets_list_dic= [('nq-train','nq'),('msmarco','msmarco')]
-    model_code_list = [ "contriever", "contriever-msmarco", "dpr-single" ,"dpr-multi" ,"ance" ,"tas-b" ,"dragon" ,"condenser"]
+    model_code_list = [ "contriever", "contriever-msmarco", "dpr-single" ,"dpr-multi" ,"ance" ,"tas-b" ,"dragon"]
     seed_list = [1999, 5, 27, 2016, 2024]
     k_list = [1 ,10 ,50]
 
