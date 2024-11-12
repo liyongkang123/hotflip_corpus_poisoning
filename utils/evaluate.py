@@ -1,23 +1,7 @@
-from transformers import AutoTokenizer,AutoModel
-from transformers import DPRContextEncoder, DPRContextEncoderTokenizerFast
-from transformers import DPRQuestionEncoder
-from transformers import BertModel
-from sentence_transformers import SentenceTransformer
+
 import torch
 import logging
-import os
-import requests
-import zipfile
-from torch.utils.data import DataLoader
-from data_loader import GenericDataLoader #beir.datasets
-import random
-from datasets import Dataset
-from transformers import default_data_collator
 from tqdm import tqdm
-import numpy as np
-import time
-from collections import Counter
-from sklearn.cluster import KMeans
 
 logger = logging.getLogger(__name__)
 
