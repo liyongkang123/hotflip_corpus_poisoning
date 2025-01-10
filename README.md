@@ -1,5 +1,6 @@
 # hotflip_corpus_poisoning
-This is the code repository for our ECIR reproducibility paper submission.
+This is the code repository for our ECIR2025 reproducibility paper [《Reproducing HotFlip for Corpus Poisoning Attacks in Dense Retrieval
+》](https://arxiv.org/abs/2501.04802).
 
 
 ## Files structure
@@ -49,12 +50,31 @@ Things need for the experiments in RQ3:
 - 1, Run `sbatch scripts/attack_corpus_ous.sh` to generate the adversarial passages for the corpus poisoning attack. The results are saved in `results_corpus_attack/hotflip-generate`.
 - 2, When you finish the code, they will output the evaluation results directly. Just record the results.
 
-# Hyperparameter Study of $I_{max}$
+[//]: # (# Hyperparameter Study of $I_{max}$)
 
-The maximum number of iterations $I_{max}$ is an important hyper-parameter affecting the attack result. Zhong et al.(2023)  use $I_{max}=5000$  as the default setting, while Su et al.(2024) use $I_{max}=3000$ as the default setting. However, the impact of $I_{max}$ on experimental results, aside from their effect on runtime, remains unclear. To better show the differences, we select **Contriever-ms** as the retriever, and attack the **NQ** dataset using its training queries. And we generate $|\mathcal{A}| \in \{1, 10, 50\}$ adversarial passages with different number of iterations $I_{max}$. We use five different random seeds and record the experimental results every 1000 iterations, from 1000 to a maximum of 20000. We report the mean attack success rate under different random seeds in the following Figure.
+[//]: # ()
+[//]: # (The maximum number of iterations $I_{max}$ is an important hyper-parameter affecting the attack result. Zhong et al.&#40;2023&#41;  use $I_{max}=5000$  as the default setting, while Su et al.&#40;2024&#41; use $I_{max}=3000$ as the default setting. However, the impact of $I_{max}$ on experimental results, aside from their effect on runtime, remains unclear. To better show the differences, we select **Contriever-ms** as the retriever, and attack the **NQ** dataset using its training queries. And we generate $|\mathcal{A}| \in \{1, 10, 50\}$ adversarial passages with different number of iterations $I_{max}$. We use five different random seeds and record the experimental results every 1000 iterations, from 1000 to a maximum of 20000. We report the mean attack success rate under different random seeds in the following Figure.)
 
-![Image](results/hyper_parameter_Imax.png)
+[//]: # ()
+[//]: # (![Image]&#40;results/hyper_parameter_Imax.png&#41;)
 
-In this Figure , we can observe that a larger $I_{max}$ generally leads to better attack performance. Moreover, increasing $I_{max}$ leads to a much greater performance improvement when $|\mathcal{A}|=1$ compared to $|\mathcal{A}|=50$. 
-However, increasing $I_{max}$ also leads to more time costs, even with our optimized code, each iteration still takes approximately 0.06 seconds.
- Therefore, the specific choice of $I_{max}$ depends on a trade-off between efficiency and performance.
+[//]: # ()
+[//]: # (In this Figure , we can observe that a larger $I_{max}$ generally leads to better attack performance. Moreover, increasing $I_{max}$ leads to a much greater performance improvement when $|\mathcal{A}|=1$ compared to $|\mathcal{A}|=50$. )
+
+[//]: # (However, increasing $I_{max}$ also leads to more time costs, even with our optimized code, each iteration still takes approximately 0.06 seconds.)
+
+[//]: # ( Therefore, the specific choice of $I_{max}$ depends on a trade-off between efficiency and performance.)
+
+
+# Citation
+If you find this code useful, I would greatly appreciate it if you could cite our paper:
+```
+@inproceedings{li2025reproducinghotflip,
+  title={Reproducing HotFlip for Corpus Poisoning Attacks in Dense Retrieval},
+  author={Yongkang Li and Panagiotis Eustratiadis and Evangelos Kanoulas},
+  booktitle={The 47th European Conference on Information Retrieval, {ECIR} 2025},
+  year={2025},
+  organization={Springer},
+  url={https://arxiv.org/abs/2501.04802}, 
+}
+```
