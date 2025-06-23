@@ -72,9 +72,15 @@ If you find this code useful, I would greatly appreciate it if you could cite ou
 @inproceedings{li2025reproducinghotflip,
   title={Reproducing HotFlip for Corpus Poisoning Attacks in Dense Retrieval},
   author={Yongkang Li and Panagiotis Eustratiadis and Evangelos Kanoulas},
-  booktitle={The 47th European Conference on Information Retrieval, {ECIR} 2025},
-  year={2025},
-  organization={Springer},
-  url={https://arxiv.org/abs/2501.04802}, 
+  booktitle    = {Advances in Information Retrieval - 47th European Conference on Information
+                  Retrieval, {ECIR} 2025, Lucca, Italy, April 6-10, 2025, Proceedings,
+                  Part {IV}},
+  series       = {Lecture Notes in Computer Science},
+  volume       = {15575},
+  pages        = {95--111},
+  publisher    = {Springer},
+  year         = {2025},
+  url          = {https://doi.org/10.1007/978-3-031-88717-8\_8},
+  doi          = {10.1007/978-3-031-88717-8\_8},
 }
 ```
