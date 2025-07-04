@@ -68,7 +68,7 @@ Things need for the experiments in RQ3:
 
 # Citation
 If you find this code useful, I would greatly appreciate it if you could cite our paper:
-```
+```bibtex
 @inproceedings{li2025reproducinghotflip,
   title={Reproducing HotFlip for Corpus Poisoning Attacks in Dense Retrieval},
   author={Yongkang Li and Panagiotis Eustratiadis and Evangelos Kanoulas},
