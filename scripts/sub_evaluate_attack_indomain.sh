@@ -1,7 +1,23 @@
 #!/bin/sh
-#SBATCH --job-name=
+#SBATCH --job-name=evaluate_attack_indomain_sub
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=10
+#SBATCH --mem=180G
+#SBATCH -p gpu
+#SBATCH --gres gpu:1
+#SBATCH --partition=gpu_h100
+#SBATCH --time=00-10:00:00
+#SBATCH --output=logs/%x-%j.out
 # Set-up the environment.
+# Activate conda
+eval "$(/gpfs/home1/yli4/anaconda3/bin/conda shell.bash hook)"
+conda activate ir
 
+nvidia-smi
+
+cd /gpfs/work4/0/prjs0928/hotflip_corpus_poisoning
+conda env list
 conda env list
 
 conda activate ir

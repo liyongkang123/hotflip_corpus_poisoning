@@ -340,13 +340,115 @@ def load_data_ours_batch(args, tokenizer, q_model, c_model, get_emb):
     data_collator = default_data_collator
     return data_collator, train_loader, valid_loader, val_size ,gold_passage_init
 
+def load_data_ours_batch_new(args, tokenizer, q_model, c_model, get_emb):
+    # Load datasets
+    url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(args.attack_dataset)
+    hf_home = os.getenv('HF_HOME')  # Huggingface datasets cache dir 这样避免各个项目都要下载一遍数据集
+    if hf_home:
+        out_dir = os.path.join(hf_home, "datasets")
+    else:
+        out_dir = os.path.join(os.getcwd(), "datasets")  # 如果没有设置环境变量，则使用当前工作目录
+    print('out_dir: ', out_dir)
+
+    data_path = os.path.join(out_dir, args.attack_dataset)
+
+    # out_dir = os.path.join(os.getcwd(), "datasets")
+    # data_path = os.path.join(out_dir, args.attack_dataset)
+    if not os.path.exists(data_path):
+        data_path = download_and_unzip(url, out_dir)
+    print(data_path)
+
+    data = GenericDataLoader(data_path)
+    if '-train' in data_path:
+        args.split = 'train'
+    corpus, queries, qrels = data.load(split=args.split)
+
+    l = list(qrels.items())
+    random.shuffle(l)
+    qrels = dict(l)
+
+    data_dict = {"sent0": [], "sent1": []}
+    for q in qrels:
+        q_ctx = queries[q]
+        for c in qrels[q]: #  c is corpus passage id
+            c_ctx = corpus[c].get("title") + ' ' + corpus[c].get("text")
+            data_dict["sent0"].append(q_ctx)
+            data_dict["sent1"].append(c_ctx)
+
+    # In fact, from here on, I only need the center of train and vaild
+    # The code here clusters first, then splits the clustered code into train, vaild, and then into multiple batches, and then calculates the center of each batch
+
+    # do kmeans
+    if args.do_kmeans:
+        data_dict = kmeans_split_ours(data_dict, q_model, get_emb, tokenizer, k=args.k, split=args.kmeans_split)
+
+    gold_passage_init = random.choice(data_dict["sent1"])
+    if args.attack_query==True:
+        batch_size = 64
+        print('start tokenizing all query')
+        all_inputs = tokenizer(data_dict["sent0"], padding="max_length", truncation=True, max_length = args.max_query_length,
+                               return_tensors="pt")
+    else:
+        batch_size = 64
+        print('start tokenizing all documents')
+        all_inputs = tokenizer(data_dict["sent1"], padding="max_length", truncation=True, max_length=args.max_seq_length,
+                           return_tensors="pt")
+    all_inputs = {key: value.cuda() for key, value in all_inputs.items()}
+    q_embs = []
+    for i in tqdm(range(0, len(data_dict["sent0"]), batch_size)):
+        batch_query_input = {key: value[i:i + batch_size] for key, value in all_inputs.items()}
+
+        with torch.no_grad():
+            batch_query_embs = get_emb(q_model, batch_query_input)
+
+        q_embs.append(batch_query_embs.cpu().numpy())
+    q_embs = np.concatenate(q_embs, axis=0)
+    # Step 1: Divide the rows into 30% validation set and 70% training set
+    num_rows = q_embs.shape[0]
+    val_size = min(1000, int(num_rows * 0.3))
+    train_size = num_rows - val_size
+    indices = np.arange(num_rows)
+    np.random.shuffle(indices)
+    train_indices = indices[:train_size]
+    val_indices = indices[train_size:]
+
+    train_set = q_embs[train_indices]
+    val_set = q_embs[val_indices]
+
+    del q_embs, data_dict
+
+    train_batches = create_batches(train_set, batch_size)
+    val_batches = create_batches(val_set, batch_size)
+
+    train_avg_set = batch_average(train_batches)
+    val_avg_set = batch_average(val_batches)
+
+    # Output results
+    print("Training set average data set shape:", train_avg_set.shape)
+    print("Validation set average data set shape:", val_avg_set.shape)
+    train_dataset = Attack_Batch_Dataset(train_avg_set)
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+    # valid_dataset = Attack_Batch_Dataset(val_avg_set)
+    # valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True)
+    data_collator = default_data_collator
+    return data_collator, train_loader, val_avg_set, val_size ,gold_passage_init # valid_loader --- IGNORE ---
+
 
 def load_data_ours_batch_all(args, tokenizer, q_model, c_model, get_emb):
     # This can load many kmean-splits at one time
     # Load datasets
     url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(args.attack_dataset)
-    out_dir = os.path.join(os.getcwd(), "datasets")
+    hf_home = os.getenv('HF_HOME')  # Huggingface datasets cache dir 这样避免各个项目都要下载一遍数据集
+    if hf_home:
+        out_dir = os.path.join(hf_home, "datasets")
+    else:
+        out_dir = os.path.join(os.getcwd(), "datasets")  # 如果没有设置环境变量，则使用当前工作目录
+    print('out_dir: ', out_dir)
+
     data_path = os.path.join(out_dir, args.attack_dataset)
+
+    # out_dir = os.path.join(os.getcwd(), "datasets")
+    # data_path = os.path.join(out_dir, args.attack_dataset)
     if not os.path.exists(data_path):
         data_path = download_and_unzip(url, out_dir)
     print(data_path)
@@ -422,14 +524,14 @@ def load_data_ours_batch_all(args, tokenizer, q_model, c_model, get_emb):
 
         train_dataset = Attack_Batch_Dataset(train_avg_set)
         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-        valid_dataset = Attack_Batch_Dataset(val_avg_set)
-        valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True)
+        # valid_dataset = Attack_Batch_Dataset(val_avg_set)
+        # valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True)
 
         data_collator = default_data_collator
 
         data_collator_dic[k_s] = data_collator
         train_loader_dic[k_s] = train_loader
-        valid_loader_dic[k_s] = valid_loader
+        valid_loader_dic[k_s] = val_avg_set  # valid_loader --- IGNORE ---
         val_size_dic[k_s] = val_size
         gold_passage_init_dic[k_s] = gold_passage_init
 
