@@ -226,12 +226,12 @@ def load_models(model_code, datasets_name=""):
         get_emb = bi_encoder_senctence_transformer_get_emb
     
     elif 'contriever-msmarco' == model_code:
-        tokenizer = AutoTokenizer.from_pretrained("facebook/contriever-msmarco") # this is the latest version
+        tokenizer = AutoTokenizer.from_pretrained("facebook/contriever-msmarco",cache_dir=os.getenv('HF_HOME')) # this is the latest version
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
 
-        q_model_base = AutoModel.from_pretrained("facebook/contriever-msmarco", torch_dtype=torch.bfloat16) #torch_dtype=torch.bfloat16
+        q_model_base = AutoModel.from_pretrained("facebook/contriever-msmarco", torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME')) #torch_dtype=torch.bfloat16
         q_model = HFtoSF(q_model_base, tokenizer,  prompt=q_prompt, normalize=False , pooling='mean', max_seq_length = 512, device='cuda') # use dot 
 
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=False , pooling='mean', max_seq_length = 512, device='cuda')
@@ -249,10 +249,10 @@ def load_models(model_code, datasets_name=""):
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
         # q_model = SentenceTransformer("reasonir/ReasonIR-8B", trust_remote_code=True, model_kwargs=model_kwargs)
-        tokenizer = AutoTokenizer.from_pretrained("reasonir/ReasonIR-8B")
+        tokenizer = AutoTokenizer.from_pretrained("reasonir/ReasonIR-8B",cache_dir=os.getenv('HF_HOME'))
         # q_model.max_seq_length = 8192
         #彻底改为 AutoModel + HFtoSF 的形式
-        q_model_base = AutoModel.from_pretrained("reasonir/ReasonIR-8B", torch_dtype=torch.bfloat16, trust_remote_code=True)
+        q_model_base = AutoModel.from_pretrained("reasonir/ReasonIR-8B", torch_dtype=torch.bfloat16, trust_remote_code=True,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='mask_prompt_mean', device='cuda')
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='mask_prompt_mean', device='cuda')
         get_emb = llm_get_emb
@@ -262,8 +262,8 @@ def load_models(model_code, datasets_name=""):
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
-        tokenizer = AutoTokenizer.from_pretrained("hanhainebula/reason-embed-qwen3-8b-0928") # this is the latest version
-        q_model_base = AutoModel.from_pretrained("hanhainebula/reason-embed-qwen3-8b-0928",trust_remote_code=True , torch_dtype=torch.bfloat16)
+        tokenizer = AutoTokenizer.from_pretrained("hanhainebula/reason-embed-qwen3-8b-0928",cache_dir=os.getenv('HF_HOME')) # this is the latest version
+        q_model_base = AutoModel.from_pretrained("hanhainebula/reason-embed-qwen3-8b-0928",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
         # c_model = AutoModel.from_pretrained("hanhainebula/reason-embed-qwen3-8b-0928" )
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
@@ -273,8 +273,8 @@ def load_models(model_code, datasets_name=""):
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
-        tokenizer = AutoTokenizer.from_pretrained("AQ-MedAI/Diver-Retriever-4B")
-        q_model_base = AutoModel.from_pretrained("AQ-MedAI/Diver-Retriever-4B",trust_remote_code=True , torch_dtype=torch.bfloat16)
+        tokenizer = AutoTokenizer.from_pretrained("AQ-MedAI/Diver-Retriever-4B",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("AQ-MedAI/Diver-Retriever-4B",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
         # c_model = AutoModel.from_pretrained("AQ-MedAI/Diver-Retriever-4B" )
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
@@ -284,8 +284,8 @@ def load_models(model_code, datasets_name=""):
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
-        tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-Embedding-8B")
-        q_model_base = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-8B",trust_remote_code=True , torch_dtype=torch.bfloat16)
+        tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-Embedding-8B",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-8B",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
         # c_model = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-8B" )
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
@@ -296,8 +296,8 @@ def load_models(model_code, datasets_name=""):
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
-        tokenizer = AutoTokenizer.from_pretrained("Alibaba-NLP/gte-Qwen2-7B-instruct")
-        q_model_base = AutoModel.from_pretrained("Alibaba-NLP/gte-Qwen2-7B-instruct",trust_remote_code=True , torch_dtype=torch.bfloat16)
+        tokenizer = AutoTokenizer.from_pretrained("Alibaba-NLP/gte-Qwen2-7B-instruct",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("Alibaba-NLP/gte-Qwen2-7B-instruct",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
         # c_model = AutoModel.from_pretrained("Alibaba-NLP/gte-Qwen2-7B-instruct" )
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
@@ -307,8 +307,8 @@ def load_models(model_code, datasets_name=""):
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
-        tokenizer = AutoTokenizer.from_pretrained("Linq-AI-Research/Linq-Embed-Mistral")
-        q_model_base = AutoModel.from_pretrained("Linq-AI-Research/Linq-Embed-Mistral",trust_remote_code=True , torch_dtype=torch.bfloat16)
+        tokenizer = AutoTokenizer.from_pretrained("Linq-AI-Research/Linq-Embed-Mistral",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("Linq-AI-Research/Linq-Embed-Mistral",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
         # c_model = AutoModel.from_pretrained("Linq-AI-Research/Linq-Embed-Mistral" )
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
@@ -318,8 +318,8 @@ def load_models(model_code, datasets_name=""):
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
-        tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-m3")
-        q_model_base = AutoModel.from_pretrained("BAAI/bge-m3",trust_remote_code=True , torch_dtype=torch.bfloat16)
+        tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-m3",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("BAAI/bge-m3",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='cls', device='cuda')
         # c_model = AutoModel.from_pretrained("BAAI/bge-m3", )
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='cls', device='cuda')

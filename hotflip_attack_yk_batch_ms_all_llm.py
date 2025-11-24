@@ -80,6 +80,7 @@ def main():
         f"Init{args.init_gold}" # 初始化方法
         f".json"
     )
+    output_path = output_dir / file_name
     all_output_data = {}
 
     # Setup logging
@@ -245,12 +246,11 @@ def main():
             "best_adv_passage_ids": best_adv_passage_ids[0].tolist(),
             "tot": num_valid
         }
-    # 保存所有 k 个聚类簇的对抗结果
 
-    output_path = output_dir / file_name
-    with output_path.open("w", encoding="utf-8") as f:
-        json.dump(all_output_data, f, ensure_ascii=False, indent=2)
-    logger.info(f"Saved adversarial documents to {output_path}")
+        # 保存所有 k 个聚类簇的对抗结果 每一个循环覆盖写一次。
+        with output_path.open("w", encoding="utf-8") as f:
+            json.dump(all_output_data, f, ensure_ascii=False, indent=2)
+        logger.info(f"Saved adversarial documents to {output_path}")
 
 if __name__ == "__main__":
     main()
