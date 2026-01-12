@@ -23,7 +23,7 @@ from utils.load_model import Contriever
 from beir.retrieval import models
 from beir.retrieval.evaluation import EvaluateRetrieval
 from beir.retrieval.search.dense import DenseRetrievalExactSearch as DRES
-# from beir.retrieval.models import DPR
+from beir.retrieval.models import DPR
 from utils.beir_utils import DenseEncoderModel
 
 import logging
@@ -95,9 +95,9 @@ def main():
         tokenizer = transformers.BertTokenizerFast.from_pretrained(model_code_to_cmodel_name[args.eval_model_code])
         model = DRES(DenseEncoderModel(encoder, doc_encoder=encoder, tokenizer=tokenizer),
                      batch_size=args.per_gpu_eval_batch_size)
-    # elif 'dpr' in args.eval_model_code:
-    #     model = DRES(DPR((model_code_to_qmodel_name[args.eval_model_code], model_code_to_cmodel_name[args.eval_model_code])),
-    #                  batch_size=args.per_gpu_eval_batch_size, corpus_chunk_size=5000)
+    elif 'dpr' in args.eval_model_code:
+        model = DRES(DPR((model_code_to_qmodel_name[args.eval_model_code], model_code_to_cmodel_name[args.eval_model_code])),
+                     batch_size=args.per_gpu_eval_batch_size, corpus_chunk_size=5000)
     elif any(model_code in args.eval_model_code for model_code in ['ance','tas', 'condenser']):
         model = DRES(models.SentenceBERT(model_code_to_cmodel_name[args.eval_model_code]),
                      batch_size=args.per_gpu_eval_batch_size)

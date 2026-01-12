@@ -101,22 +101,12 @@ def evaluate_sim_ours_new(model, c_model, get_emb, valid_embeddings, adv_passage
     p_emb = get_emb(c_model, p_sent)  # [k x d]
     p_emb = p_emb.cpu().detach().numpy()
 
-    # 确保 valid_embeddings 是 numpy 数组 (兼容性处理)
+ 
     if isinstance(valid_embeddings, torch.Tensor):
         valid_embeddings = valid_embeddings.cpu().numpy()
 
-        # 直接在 CPU 上使用 numpy 计算相似度
+         
     # valid_embeddings [N, d] @ p_emb.T [d, k] -> [N, k]
     sim_all = np.dot(valid_embeddings, p_emb.T)
 
     return float(sim_all.mean())
-
-    # sim_all=[]
-    # # 把 p_emb 放到 cpu 上，然后和 valid_embeddings 计算相似度
-
-    # with torch.no_grad():
-    #     for idx, (data) in tqdm(enumerate(va_dataloader)):
-    #         sim = torch.mm(data, p_emb.T).squeeze()
-    #         sim_all.append(sim.sum())
-
-    # return (sum(sim_all) / len(sim_all)).item()

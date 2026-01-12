@@ -15,7 +15,7 @@ from .utils import model_code_to_qmodel_name,model_code_to_cmodel_name,get_model
 
 class HFtoSF(torch.nn.Module):
     def __init__(self, hf_model, hf_tokenizer, prompt="", normalize= False, pooling='last', max_seq_length=8192 ,device='cuda'):
-        super().__init__()  # <--- 必须加上这一行
+        super().__init__()  # <--- This line is required
         try:
             self.hf_model = hf_model.to(device)
             self.hf_model.eval()
@@ -23,14 +23,14 @@ class HFtoSF(torch.nn.Module):
             self.hf_model = hf_model
         self.hf_tokenizer = hf_tokenizer
         self.device = device
-        self.max_seq_length = max_seq_length  # 根据具体模型调整
+        self.max_seq_length = max_seq_length  # Adjust according to specific model
         self.pooling = pooling
         self.normalize = normalize
-        self.prompt = str(prompt)+" " # 初始化的时候就定义好query prompt或者context prompt 后面加一个空格
-                    # 1. 将 prompt 转换为 token ids (不添加 special tokens，因为我们要插在中间)
+        self.prompt = str(prompt)+" " # Define query prompt or context prompt at initialization, add a space at the end
+                    # 1. Convert prompt to token ids (without adding special tokens, as we will insert in the middle)
         self.prompt_tokens = self.hf_tokenizer(self.prompt, padding=False, add_special_tokens=False, return_tensors='pt')
 
-        if pooling == 'mask_prompt_mean': # 专为 ReasonIR 设计的 pooling 方法
+        if pooling == 'mask_prompt_mean': # Pooling method designed specifically for ReasonIR
             self.prompt_tokens = self.hf_tokenizer(self.prompt, padding=False, add_special_tokens=True, return_tensors='pt')
 
     def _pooling(self, last_hidden_state, attention_mask):
@@ -64,11 +64,11 @@ class HFtoSF(torch.nn.Module):
         return batch_dict
 
     def encode(self, texts, convert_to_numpy=False, show_progress_bar=False):
-        # 输入的是已经经过了batch size 之后的文本list
-        # 输出的是对应的embeddings
+        # Input is a text list that has already been batched
+        # Output is the corresponding embeddings
         if isinstance(texts, str):
             texts = [texts]
-        # 把prompt 拼接到texts 前面
+        # Prepend prompt to texts
         if self.prompt != '':
             texts = [self.prompt + text for text in texts]
         batch_inputs = self.tokenize_texts(texts)
@@ -80,25 +80,25 @@ class HFtoSF(torch.nn.Module):
         return embeddings
 
     def encode_tokenized(self, tokenized_inputs, convert_to_numpy=False, show_progress_bar=False):
-        # 针对 Llama/Qwen 等模型的安全检查：移除 position_ids 以便模型根据新长度自动生成
+        # Safety check for Llama/Qwen models: remove position_ids so the model can auto-generate based on new length
         if 'position_ids' in tokenized_inputs:
             del tokenized_inputs['position_ids']
 
-        # 怎么把tokenized_inputs 加上prompt
-        if self.prompt.strip(): # 如果prompt不为空
-                         # 确保设备一致
+        # How to add prompt to tokenized_inputs
+        if self.prompt.strip(): # If prompt is not empty
+                         # Ensure device consistency
             device = tokenized_inputs['input_ids'].device
             prompt_ids = self.prompt_tokens['input_ids'].to(device)
             
             batch_size = tokenized_inputs['input_ids'].shape[0]
             prompt_len = prompt_ids.shape[1]
             
-            # 2. 扩展 prompt 到当前 batch 的大小
+            # 2. Expand prompt to the current batch size
             prompt_ids = prompt_ids.repeat(batch_size, 1)
             prompt_mask = torch.ones((batch_size, prompt_len), device=device, dtype=tokenized_inputs['attention_mask'].dtype)
             
-            # 3. 拼接操作： [CLS] + Prompt + Text ...
-            # 假设 input_ids[:, 0] 是 [CLS]
+            # 3. Concatenation operation: [CLS] + Prompt + Text ...
+            # Assuming input_ids[:, 0] is [CLS]
             tokenized_inputs['input_ids'] = torch.cat([
                 tokenized_inputs['input_ids'][:, :1], 
                 prompt_ids, 
@@ -111,7 +111,7 @@ class HFtoSF(torch.nn.Module):
                 tokenized_inputs['attention_mask'][:, 1:]
             ], dim=1)
             
-            # 如果有 token_type_ids (BERT等模型)，通常 Prompt 也属于第一句 (Type 0)
+            # If token_type_ids exists (BERT and similar models), usually Prompt also belongs to the first sentence (Type 0)
             if 'token_type_ids' in tokenized_inputs:
                 prompt_type_ids = torch.zeros((batch_size, prompt_len), device=device, dtype=tokenized_inputs['token_type_ids'].dtype)
                 tokenized_inputs['token_type_ids'] = torch.cat([
@@ -125,9 +125,9 @@ class HFtoSF(torch.nn.Module):
         embeddings = self._pooling(outputs.last_hidden_state, tokenized_inputs['attention_mask'])
         embeddings = embeddings.float()
         
-        # 及时清理中间变量
+        # Clean up intermediate variables promptly
         del outputs
-        torch.cuda.empty_cache()  # 可选：在内存紧张时使用
+        torch.cuda.empty_cache()  # Optional: use when memory is tight
 
         if convert_to_numpy:
             embeddings = embeddings.cpu().numpy()
@@ -193,7 +193,7 @@ def bi_encoder_senctence_transformer_get_emb(model, input): #  All models provid
     return model(input)["sentence_embedding"]
 
 def llm_get_emb(model, input):
-    # 这里的input 是 tokenized input
+    # Here the input is tokenized input
     return model.encode_tokenized(input)
 
  
@@ -201,13 +201,13 @@ def llm_get_emb(model, input):
 
 def load_models(model_code, datasets_name=""):
     assert (model_code in model_code_to_qmodel_name and model_code in model_code_to_cmodel_name), f"Model code {model_code} not supported!"
-    # if 'contriever' in model_code:
-    #     q_model = Contriever.from_pretrained(model_code_to_qmodel_name[model_code])
-    #     assert model_code_to_cmodel_name[model_code] == model_code_to_qmodel_name[model_code]
-    #     c_model = q_model
-    #     tokenizer = AutoTokenizer.from_pretrained(model_code_to_qmodel_name[model_code],use_fast=True)
-    #     get_emb = contriever_get_emb
-    if 'dpr' in model_code:
+    if 'contriever' == model_code:
+        q_model = Contriever.from_pretrained(model_code_to_qmodel_name[model_code])
+        assert model_code_to_cmodel_name[model_code] == model_code_to_qmodel_name[model_code]
+        c_model = q_model
+        tokenizer = AutoTokenizer.from_pretrained(model_code_to_qmodel_name[model_code],use_fast=True)
+        get_emb = contriever_get_emb
+    elif 'dpr' in model_code:
         q_model = DPRQuestionEncoder.from_pretrained(model_code_to_qmodel_name[model_code])
         c_model = DPRContextEncoder.from_pretrained(model_code_to_cmodel_name[model_code])
         tokenizer = DPRContextEncoderTokenizerFast.from_pretrained(model_code_to_qmodel_name[model_code])
@@ -237,12 +237,12 @@ def load_models(model_code, datasets_name=""):
         get_emb = llm_get_emb
 
 
-    elif 'reasonir' in model_code:
-        # 这个是最为特殊的，需要使用SentenceTransformer， 稍后我单独处理
+    elif 'reasonir' == model_code:
+        # This is the most special case, requires using SentenceTransformer, will handle separately later
         
         model_kwargs = {
-        "torch_dtype": torch.bfloat16,  # 使用bfloat16，更稳定且性能好
-        # "attn_implementation": "flash_attention_2",  # 使用Flash Attention 2提高效率
+        "torch_dtype": torch.bfloat16,  # Use bfloat16, more stable and better performance
+        # "attn_implementation": "flash_attention_2",  # Use Flash Attention 2 for efficiency
         }
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
@@ -255,7 +255,7 @@ def load_models(model_code, datasets_name=""):
         get_emb = llm_get_emb
 
 
-    elif 'bge_reasoner' in model_code:
+    elif 'bge_reasoner' == model_code:
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
@@ -266,7 +266,7 @@ def load_models(model_code, datasets_name=""):
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
         get_emb = llm_get_emb
 
-    elif 'diver' in model_code:
+    elif 'diver' == model_code:
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
@@ -277,6 +277,27 @@ def load_models(model_code, datasets_name=""):
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
         get_emb = llm_get_emb
         
+    elif 'diver_1.7B' == model_code:
+        prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
+        q_prompt = prompts['query']
+        c_prompt = prompts['passage']
+        tokenizer = AutoTokenizer.from_pretrained("AQ-MedAI/Diver-Retriever-1.7B",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("AQ-MedAI/Diver-Retriever-1.7B",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
+        q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
+        # c_model = AutoModel.from_pretrained("AQ-MedAI/Diver-Retriever-4B" )
+        c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
+        get_emb = llm_get_emb
+    elif 'diver_0.6B' == model_code:
+        prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
+        q_prompt = prompts['query']
+        c_prompt = prompts['passage']
+        tokenizer = AutoTokenizer.from_pretrained("AQ-MedAI/Diver-Retriever-0.6B",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("AQ-MedAI/Diver-Retriever-0.6B",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
+        q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
+        # c_model = AutoModel.from_pretrained("AQ-MedAI/Diver-Retriever-4B" )
+        c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
+        get_emb = llm_get_emb
+
     elif 'qwen3' == model_code:
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
@@ -311,7 +332,7 @@ def load_models(model_code, datasets_name=""):
         get_emb = llm_get_emb
 
 
-    elif 'gte' in model_code:
+    elif 'gte' == model_code:
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
@@ -322,7 +343,7 @@ def load_models(model_code, datasets_name=""):
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
         get_emb = llm_get_emb
     
-    elif 'linq' in model_code:
+    elif 'linq' == model_code:
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
@@ -333,7 +354,7 @@ def load_models(model_code, datasets_name=""):
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
         get_emb = llm_get_emb
 
-    elif 'bge_m3' in model_code:
+    elif 'bge_m3' == model_code:
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']

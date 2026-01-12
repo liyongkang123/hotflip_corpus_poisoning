@@ -7,17 +7,6 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
-def _get_underlying_model(encoder):
-    """Returns the torch.nn.Module that exposes the embedding layer."""
-    if isinstance(encoder, SentenceTransformer):
-        transformer_module = encoder[0]
-        if hasattr(transformer_module, "auto_model"):
-            return transformer_module.auto_model
-        raise ValueError("SentenceTransformer encoder does not expose an auto_model for gradients.")
-    if hasattr(encoder, "hf_model"):
-        return encoder.hf_model
-    return encoder
-
 class GradientStorage:
     """
     This object stores the intermediate gradients of the output a the given PyTorch module, which
@@ -49,7 +38,7 @@ def get_embeddings(model):
         inner_model = model.hf_model
         if hasattr(inner_model, 'embeddings'): # BERT, Roberta, XLM-R
             embeddings = inner_model.embeddings.word_embeddings
-        elif hasattr(inner_model, 'get_input_embeddings'): # 通用兜底
+        elif hasattr(inner_model, 'get_input_embeddings'): # General fallback
              embeddings = inner_model.get_input_embeddings()
         else:
             raise ValueError(f"Unknown model type: {type(inner_model)}")
@@ -140,13 +129,13 @@ def get_model_prompts_tasks(model_name, dataset_name):
         "nq-train": "nq",
     }
     dataset_name = Dataset_NAME_ALIASES.get(dataset_name, dataset_name)
-    # 获取父目录路径（调用 utils.py 的路径的父级目录）
+    # Get the parent directory path (parent directory of the path calling utils.py)
     parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-    # 构建正确的 prompts 文件路径
+    # Build the correct prompts file path
     prompts_path = os.path.join(parent_dir, 'prompts', f'{model_name}.json')
 
-    # 检查 prompts 文件是否存在
+    # Check if the prompts file exists
     if not os.path.isfile(prompts_path):
         raise FileNotFoundError(
             f"Prompt file not found at expected location: {prompts_path}\n"
@@ -154,7 +143,7 @@ def get_model_prompts_tasks(model_name, dataset_name):
         )
     with open(prompts_path, 'r', encoding='utf-8') as f:
         prompts_all = json.load(f)
-    # 检查 dataset_name 是否存在于 JSON 文件中
+    # Check if dataset_name exists in the JSON file
     if dataset_name not in prompts_all:
         raise KeyError(
             f"Dataset '{dataset_name}' not found in prompts file: {prompts_path}\n"
@@ -163,9 +152,9 @@ def get_model_prompts_tasks(model_name, dataset_name):
 
     prompts = prompts_all[dataset_name]
 
-    if  model_name in  ['qwen3','linq','diver','gte','bge_reasoner'] : # qwen3 是需要只对query 加上这样的prompt，document不用
+    if  model_name in  ['qwen3','linq','diver','gte','bge_reasoner'] : # qwen3 requires adding this prompt only to queries, not documents
         prompts['query'] = f"Instruct: {prompts['query']}\nQuery:"
-        # reasonir 和 bge_m3 和 contriever 不需要
+        # reasonir, bge_m3, and contriever do not need this
 
     elif dataset_name=='browsecomp_plus':
         prompts['query'] = f"Instruct: {prompts['query']}\nQuery:"
