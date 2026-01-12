@@ -32,6 +32,7 @@ import json
 import torch
 import sys
 import transformers
+from utils.eval_utils import calculate_retrieval_metrics
 
 
 def main():

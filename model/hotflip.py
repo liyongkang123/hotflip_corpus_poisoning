@@ -1,6 +1,7 @@
 import torch
 import random
 import time
+from utils.utils import compose_model_inputs
 
 def hotflip_attack(averaged_grad,
                    embedding_matrix,
@@ -36,6 +37,40 @@ def hotflip_candidate(args, grad, embeddings,):
 
     return token_to_flip , candidates
 
+def hotflip_candidate_score_new(args, it_, candidates, pbar, train_iter, get_emb, c_model,
+                            adv_passage_ids,  token_to_flip, device, use_token_type_ids):
+    # current_score = 0
+    candidate_scores = torch.zeros(args.num_cand, device=device)
+
+    for step in pbar:
+        try:
+            it_centrid_embedding = next(train_iter)
+        except:
+            print('Insufficient data!')
+            break
+ 
+        batch_size = len(candidates)
+        temp_adv_passage = adv_passage_ids.clone().repeat(batch_size, 1)  # [num_candidates, 50]
+
+        # Replace the token at the specified position with candidates
+        temp_adv_passage[:, token_to_flip] = candidates  # Batch replacement token
+
+        p_sent = compose_model_inputs(temp_adv_passage, use_token_type_ids) 
+        with torch.no_grad():
+            p_emb = get_emb(c_model, p_sent)
+
+        # Calculating Similarity
+        with torch.no_grad():
+            sim = torch.mm(it_centrid_embedding, p_emb.T)  # [1, num_candidates]
+            temp_scores = sim.mean(dim=0)  # [num_candidates]
+
+        candidate_scores += temp_scores
+        end_time = time.time()
+ 
+    return  candidate_scores
+
+
+#raw hotflip_candidate_score function
 def hotflip_candidate_score(args, it_, candidates, pbar, train_iter, data_collator, get_emb, model, c_model,
                             adv_passage_ids, adv_passage_attention, adv_passage_token_type,token_to_flip, device):
     current_score = 0
