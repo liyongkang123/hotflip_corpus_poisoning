@@ -97,6 +97,11 @@ model_code_to_qmodel_name = {  # query encoder
     "linq": "Linq-AI-Research/Linq-Embed-Mistral",
     "gte": "Alibaba-NLP/gte-Qwen2-7B-instruct",
     "bge_m3": "BAAI/bge-m3",
+
+    "qwen3_4B": "Qwen/Qwen3-Embedding-4B",
+    "qwen3_0.6B": "Qwen/Qwen3-Embedding-0.6B",
+    "diver_1.7B": "AQ-MedAI/Diver-Retriever-1.7B",
+    "diver_0.6B": "AQ-MedAI/Diver-Retriever-0.6B",
 }
 
 model_code_to_cmodel_name = {  # ctx  encoder
@@ -116,6 +121,11 @@ model_code_to_cmodel_name = {  # ctx  encoder
     "linq": "Linq-AI-Research/Linq-Embed-Mistral",
     "gte": "Alibaba-NLP/gte-Qwen2-7B-instruct",
     "bge_m3": "BAAI/bge-m3",
+
+    "qwen3_4B": "Qwen/Qwen3-Embedding-4B",
+    "qwen3_0.6B": "Qwen/Qwen3-Embedding-0.6B",
+    "diver_1.7B": "AQ-MedAI/Diver-Retriever-1.7B",
+    "diver_0.6B": "AQ-MedAI/Diver-Retriever-0.6B",
 }
 
 import os,json

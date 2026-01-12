@@ -2,7 +2,6 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from torch.amp import autocast
-from transformers import AutoTokenizer
 from transformers import DPRContextEncoder, DPRContextEncoderTokenizerFast
 from transformers import DPRQuestionEncoder
 from transformers import BertModel
@@ -249,10 +248,8 @@ def load_models(model_code, datasets_name=""):
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
         # q_model = SentenceTransformer("reasonir/ReasonIR-8B", trust_remote_code=True, model_kwargs=model_kwargs)
-        tokenizer = AutoTokenizer.from_pretrained("reasonir/ReasonIR-8B",cache_dir=os.getenv('HF_HOME'))
-        # q_model.max_seq_length = 8192
-        #彻底改为 AutoModel + HFtoSF 的形式
-        q_model_base = AutoModel.from_pretrained("reasonir/ReasonIR-8B", torch_dtype=torch.bfloat16, trust_remote_code=True,cache_dir=os.getenv('HF_HOME'))
+        tokenizer = AutoTokenizer.from_pretrained("reasonir/ReasonIR-8B",cache_dir=os.getenv('HF_HOME'),trust_remote_code=True,)
+        q_model_base = AutoModel.from_pretrained("reasonir/ReasonIR-8B",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='mask_prompt_mean', device='cuda')
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='mask_prompt_mean', device='cuda')
         get_emb = llm_get_emb
@@ -280,12 +277,34 @@ def load_models(model_code, datasets_name=""):
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
         get_emb = llm_get_emb
         
-    elif 'qwen3' in model_code:
+    elif 'qwen3' == model_code:
         prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
         q_prompt = prompts['query']
         c_prompt = prompts['passage']
         tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-Embedding-8B",cache_dir=os.getenv('HF_HOME'))
         q_model_base = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-8B",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
+        q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
+        # c_model = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-8B" )
+        c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
+        get_emb = llm_get_emb
+    
+    elif 'qwen3_4B' == model_code:
+        prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
+        q_prompt = prompts['query']
+        c_prompt = prompts['passage']
+        tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-Embedding-4B",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-4B",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
+        q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
+        # c_model = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-8B" )
+        c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')
+        get_emb = llm_get_emb
+
+    elif 'qwen3_0.6B' == model_code:
+        prompts = get_model_prompts_tasks(model_name=model_code,dataset_name=datasets_name)
+        q_prompt = prompts['query']
+        c_prompt = prompts['passage']
+        tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-Embedding-0.6B",cache_dir=os.getenv('HF_HOME'))
+        q_model_base = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-0.6B",trust_remote_code=True , torch_dtype=torch.bfloat16,cache_dir=os.getenv('HF_HOME'))
         q_model = HFtoSF(q_model_base, tokenizer, prompt=q_prompt, normalize=True , pooling='last', device='cuda')
         # c_model = AutoModel.from_pretrained("Qwen/Qwen3-Embedding-8B" )
         c_model = HFtoSF(q_model_base, tokenizer, prompt=c_prompt, normalize=True , pooling='last', device='cuda')

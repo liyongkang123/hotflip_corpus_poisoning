@@ -72,7 +72,7 @@ def main():
     set_seed(args.seed) # set seed for reproducibility
 
     # Load models
-    q_model, c_model, tokenizer, get_emb = load_models(args.attack_model_code, args.attack_dataset) # c_model 是ctx model
+    q_model, c_model, tokenizer, get_emb = load_models(args.attack_model_code, args.attack_dataset) # c_model is ctx model
 
     q_model.eval() # query model and context model
     q_model.to(device)
@@ -146,7 +146,7 @@ def main():
             loss = sim.mean()
             # print('loss', loss.cpu().item())
             loss.backward()
-            current_score = loss.item() # 直接复用这个值！
+            current_score = loss.item() # Reuse this value directly!
 
             temp_grad = embedding_gradient.get()
             if grad is None:
@@ -167,7 +167,7 @@ def main():
             # best_candidate_score = candidate_scores.max()
             best_candidate_idx = candidate_scores.argmax()
             adv_passage_ids[:, token_to_flip] = candidates[best_candidate_idx]
-            print('Current adv_passage', tokenizer.convert_ids_to_tokens(adv_passage_ids[0])) #减少 io 操作
+            print('Current adv_passage', tokenizer.convert_ids_to_tokens(adv_passage_ids[0])) # Reduce I/O operations
 
             improve_flag = True
         else:
@@ -175,7 +175,7 @@ def main():
             improve_flag = False
             continue
 
-        if improve_flag: # 只有当 adv_passage_ids 变化时，才评估
+        if improve_flag: # Only evaluate when adv_passage_ids has changed
             start_time =time.time()
             cur_sim = evaluate_sim_ours_new(q_model, c_model, get_emb, valid_embeddings, adv_passage_ids, use_token_type_ids, device=device)
             end_time = time.time()
