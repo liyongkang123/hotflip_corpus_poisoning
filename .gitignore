@@ -5,3 +5,5 @@
 k*.json
 /cache_rebuttal/
 /cache_aggd_rebuttal/
+__pycache__/
+*.py[cod]
